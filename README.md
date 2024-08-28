@@ -12,7 +12,7 @@ Please fill in the information below by the second Monday of the semester at 9:0
 
 | Student ID           | Student Full Name       | SFSU Email            |Database Topic                                                             |
 |:---------------------:|:---------------------------:|:---------------------------:|:-------------------------------------------------------------------------:|
-|                       |            <br>             |            <br>             |                                   <br>                                    |
+|    923328897                   |            Ulices Gonzalez          |           sgonzalez30@sfsu.edu            |                                  Public Library Catalog System                                   |
 
 Please choose a topic from this **[list of topics](milestones/res/TOPICS.md)** for the database system
 you will create in this class.
@@ -87,7 +87,7 @@ Below are the general policies regarding milestones for the course, which can al
 
 ---
 
-© 2024 [Your full name here]. All rights reserved.
+© 2024 [Ulices Gonzalez]. All rights reserved.
 
 No part of this repository may be reproduced, distributed, or transmitted in any form or by any means, including photocopying, recording, or other electronic or mechanical methods, without the prior written permission of the instructor or team.
 
