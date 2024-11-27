@@ -7,6 +7,7 @@ SET @OLD_UNIQUE_CHECKS=@@UNIQUE_CHECKS, UNIQUE_CHECKS=0;
 SET @OLD_FOREIGN_KEY_CHECKS=@@FOREIGN_KEY_CHECKS, FOREIGN_KEY_CHECKS=0;
 SET @OLD_SQL_MODE=@@SQL_MODE, SQL_MODE='ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION';
 
+USE LIBRARYDB;
 -- -----------------------------------------------------
 -- Schema libraryDB
 -- -----------------------------------------------------
@@ -17,7 +18,7 @@ SET @OLD_SQL_MODE=@@SQL_MODE, SQL_MODE='ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,N
 DROP TABLE IF EXISTS `Addresses` ;
 
 CREATE TABLE IF NOT EXISTS `Addresses` (
-  `addressID` INT UNSIGNED NOT NULL,
+  `addressID` INT UNSIGNED NOT NULL AUTO_INCREMENT,
   `street_number` INT UNSIGNED NOT NULL,
   `street_name` VARCHAR(16) NOT NULL,
   `city` VARCHAR(16) NOT NULL,
@@ -34,7 +35,7 @@ ENGINE = InnoDB;
 DROP TABLE IF EXISTS `Public Libraries` ;
 
 CREATE TABLE IF NOT EXISTS `Public Libraries` (
-  `libraryID` INT UNSIGNED NOT NULL,
+  `libraryID` INT UNSIGNED NOT NULL AUTO_INCREMENT,
   `county_name` VARCHAR(16) NOT NULL,
   `address` INT UNSIGNED NOT NULL,
   PRIMARY KEY (`libraryID`),
@@ -55,13 +56,14 @@ ENGINE = InnoDB;
 DROP TABLE IF EXISTS `Apartments` ;
 
 CREATE TABLE IF NOT EXISTS `Apartments` (
-  `apartmentID` INT UNSIGNED NOT NULL,
+  `apartmentID` INT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `aptAddressID` INT UNSIGNED NOT NULL,
   `building_number` INT UNSIGNED NOT NULL,
   `apartment_number` INT UNSIGNED NOT NULL,
   UNIQUE INDEX `apartmentID_UNIQUE` (`apartmentID` ASC) INVISIBLE,
   PRIMARY KEY (`apartmentID`),
   CONSTRAINT `apartmentAddressID`
-    FOREIGN KEY (`apartmentID`)
+    FOREIGN KEY (`aptAddressID`)
     REFERENCES `Addresses` (`addressID`)
     ON DELETE CASCADE
     ON UPDATE CASCADE)
@@ -74,13 +76,14 @@ ENGINE = InnoDB;
 DROP TABLE IF EXISTS `P.O. Boxes` ;
 
 CREATE TABLE IF NOT EXISTS `P.O. Boxes` (
-  `po_boxID` INT UNSIGNED NOT NULL,
+  `po_boxID` INT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `poAddressID` INT UNSIGNED NOT NULL,
   `po_box_number` INT UNSIGNED NOT NULL,
   `service_name` VARCHAR(16) NOT NULL,
   PRIMARY KEY (`po_boxID`),
   UNIQUE INDEX `po_boxID_UNIQUE` (`po_boxID` ASC) VISIBLE,
   CONSTRAINT `poBoxAddressID`
-    FOREIGN KEY (`po_boxID`)
+    FOREIGN KEY (`poAddressID`)
     REFERENCES `Addresses` (`addressID`)
     ON DELETE CASCADE
     ON UPDATE CASCADE)
@@ -93,7 +96,7 @@ ENGINE = InnoDB;
 DROP TABLE IF EXISTS `Library Branches` ;
 
 CREATE TABLE IF NOT EXISTS `Library Branches` (
-  `branchID` INT UNSIGNED NOT NULL,
+  `branchID` INT UNSIGNED NOT NULL AUTO_INCREMENT,
   `is_virtual` TINYINT NOT NULL,
   `libraryID` INT UNSIGNED NOT NULL,
   `address` INT UNSIGNED NOT NULL,
@@ -120,7 +123,8 @@ ENGINE = InnoDB;
 DROP TABLE IF EXISTS `Libraries` ;
 
 CREATE TABLE IF NOT EXISTS `Libraries` (
-  `libraryAddressID` INT UNSIGNED NOT NULL,
+  `libraryAddressID` INT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `biblioAddressID` INT UNSIGNED NOT NULL,
   `county_region` VARCHAR(16) NOT NULL,
   `branch` INT UNSIGNED NOT NULL,
   PRIMARY KEY (`libraryAddressID`),
@@ -133,7 +137,7 @@ CREATE TABLE IF NOT EXISTS `Libraries` (
     ON DELETE CASCADE
     ON UPDATE CASCADE,
   CONSTRAINT `libraryAddressID`
-    FOREIGN KEY (`libraryAddressID`)
+    FOREIGN KEY (`biblioAddressID`)
     REFERENCES `Addresses` (`addressID`)
     ON DELETE CASCADE
     ON UPDATE CASCADE)
@@ -146,13 +150,14 @@ ENGINE = InnoDB;
 DROP TABLE IF EXISTS `Institutions` ;
 
 CREATE TABLE IF NOT EXISTS `Institutions` (
-  `institutionID` INT UNSIGNED NOT NULL,
+  `institutionID` INT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `instAddressID` INT UNSIGNED NOT NULL,
   `school_district` VARCHAR(16) NOT NULL,
-  `school_name` VARCHAR(16) NOT NULL,
+  `school_name` VARCHAR(32) NOT NULL,
   PRIMARY KEY (`institutionID`),
   UNIQUE INDEX `institutionID_UNIQUE` (`institutionID` ASC) VISIBLE,
   CONSTRAINT `institutionalAddressID`
-    FOREIGN KEY (`institutionID`)
+    FOREIGN KEY (`instAddressID`)
     REFERENCES `Addresses` (`addressID`)
     ON DELETE CASCADE
     ON UPDATE CASCADE)
@@ -165,8 +170,11 @@ ENGINE = InnoDB;
 DROP TABLE IF EXISTS `Patrons` ;
 
 CREATE TABLE IF NOT EXISTS `Patrons` (
-  `libraryCardNumber` INT UNSIGNED NOT NULL,
+  `libraryCardNumber` INT UNSIGNED NOT NULL AUTO_INCREMENT,
   `email` VARCHAR(64) NOT NULL,
+  `first_name` VARCHAR(32) NOT NULL,  
+  `middle_name` VARCHAR(32),
+  `last_name` VARCHAR(32) NOT NULL,
   `is_delinquent` TINYINT NOT NULL,
   PRIMARY KEY (`libraryCardNumber`),
   UNIQUE INDEX `libraryCardNumber_UNIQUE` (`libraryCardNumber` ASC) VISIBLE)
@@ -179,14 +187,13 @@ ENGINE = InnoDB;
 DROP TABLE IF EXISTS `E-Cards` ;
 
 CREATE TABLE IF NOT EXISTS `E-Cards` (
-  `ecardID` INT UNSIGNED NOT NULL,
-  `first_name` VARCHAR(32) NOT NULL,
-  `last_name` VARCHAR(32) NOT NULL,
+  `ecardID` INT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `libraryCardNo` INT UNSIGNED NOT NULL,
   `date_of_birth` DATE NOT NULL,
   PRIMARY KEY (`ecardID`),
-  UNIQUE INDEX `ecardID_UNIQUE` (`ecardID` ASC) VISIBLE,
+  UNIQUE INDEX `ecardID_UNIQUE` (`libraryCardNo` ASC) VISIBLE,
   CONSTRAINT `ecardNumber`
-    FOREIGN KEY (`ecardID`)
+    FOREIGN KEY (`libraryCardNo`)
     REFERENCES `Patrons` (`libraryCardNumber`)
     ON DELETE CASCADE
     ON UPDATE CASCADE)
@@ -199,14 +206,13 @@ ENGINE = InnoDB;
 DROP TABLE IF EXISTS `Full-Service Cards` ;
 
 CREATE TABLE IF NOT EXISTS `Full-Service Cards` (
-  `patronID` INT UNSIGNED NOT NULL,
-  `first_name` VARCHAR(32) NOT NULL,
-  `last_name` VARCHAR(32) NOT NULL,
+  `patronID` INT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `libraryCardNo` INT UNSIGNED NOT NULL,
   `date_of_birth` DATE NOT NULL,
   `phone_number` VARCHAR(16) NOT NULL,
   `address` INT UNSIGNED NOT NULL,
   PRIMARY KEY (`patronID`),
-  UNIQUE INDEX `fullServiceCardID_UNIQUE` (`patronID` ASC) VISIBLE,
+  UNIQUE INDEX `fullServiceCardID_UNIQUE` (`libraryCardNo` ASC) VISIBLE,
   INDEX `patronAddress_idx` (`address` ASC) VISIBLE,
   CONSTRAINT `patronAddress`
     FOREIGN KEY (`address`)
@@ -214,7 +220,7 @@ CREATE TABLE IF NOT EXISTS `Full-Service Cards` (
     ON DELETE CASCADE
     ON UPDATE CASCADE,
   CONSTRAINT `patronCard`
-    FOREIGN KEY (`patronID`)
+    FOREIGN KEY (`libraryCardNo`)
     REFERENCES `Patrons` (`libraryCardNumber`)
     ON DELETE CASCADE
     ON UPDATE CASCADE)
@@ -227,22 +233,16 @@ ENGINE = InnoDB;
 DROP TABLE IF EXISTS `Child Cards` ;
 
 CREATE TABLE IF NOT EXISTS `Child Cards` (
-  `childID` INT UNSIGNED NOT NULL,
-  `first_name` VARCHAR(32) NOT NULL,
-  `last_name` VARCHAR(32) NOT NULL,
+  `childID` INT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `parentCardNum` INT UNSIGNED NOT NULL,
+  `child_first_name` VARCHAR(32) NOT NULL,  
+  `child_middle_name` VARCHAR(32),
+  `child_last_name` VARCHAR(32) NOT NULL,
   `date_of_birth` DATE NOT NULL,
-  `parentID` INT UNSIGNED NOT NULL,
   PRIMARY KEY (`childID`),
-  INDEX `parentLibraryCard_idx` (`parentID` ASC) VISIBLE,
-  UNIQUE INDEX `childID_UNIQUE` (`childID` ASC) VISIBLE,
   CONSTRAINT `parentLibraryCard`
-    FOREIGN KEY (`parentID`)
-    REFERENCES `Full-Service Cards` (`patronID`)
-    ON DELETE CASCADE
-    ON UPDATE CASCADE,
-  CONSTRAINT `childCard`
-    FOREIGN KEY (`childID`)
-    REFERENCES `Patrons` (`libraryCardNumber`)
+    FOREIGN KEY (`parentCardNum`)
+    REFERENCES `Full-Service Cards` (`libraryCardNo`)
     ON DELETE CASCADE
     ON UPDATE CASCADE)
 ENGINE = InnoDB;
@@ -254,13 +254,12 @@ ENGINE = InnoDB;
 DROP TABLE IF EXISTS `Institutional Cards` ;
 
 CREATE TABLE IF NOT EXISTS `Institutional Cards` (
-  `institutionalID` INT UNSIGNED NOT NULL,
-  `first_name` VARCHAR(32) NOT NULL,
-  `last_name` VARCHAR(32) NOT NULL,
+  `institutionalID` INT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `libraryCardNo` INT UNSIGNED NOT NULL,
   `phone_number` VARCHAR(16) NOT NULL,
   `address` INT UNSIGNED NOT NULL,
   PRIMARY KEY (`institutionalID`),
-  UNIQUE INDEX `institutionalCardID_UNIQUE` (`institutionalID` ASC) VISIBLE,
+  UNIQUE INDEX `institutionalCardID_UNIQUE` (`libraryCardNo` ASC) VISIBLE,
   INDEX `instituionalAddressID_idx` (`address` ASC) VISIBLE,
   CONSTRAINT `instituionalAddressID`
     FOREIGN KEY (`address`)
@@ -268,7 +267,7 @@ CREATE TABLE IF NOT EXISTS `Institutional Cards` (
     ON DELETE CASCADE
     ON UPDATE CASCADE,
   CONSTRAINT `institutionalCard`
-    FOREIGN KEY (`institutionalID`)
+    FOREIGN KEY (`libraryCardNo`)
     REFERENCES `Patrons` (`libraryCardNumber`)
     ON DELETE CASCADE
     ON UPDATE CASCADE)
@@ -281,14 +280,13 @@ ENGINE = InnoDB;
 DROP TABLE IF EXISTS `Staff Cards` ;
 
 CREATE TABLE IF NOT EXISTS `Staff Cards` (
-  `staffID` INT UNSIGNED NOT NULL,
-  `first_name` VARCHAR(32) NOT NULL,
-  `last_name` VARCHAR(32) NOT NULL,
+  `staffID` INT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `libraryCardNo` INT UNSIGNED NOT NULL,
   `date_of_birth` DATE NOT NULL,
   `phone_number` VARCHAR(16) NOT NULL,
   `address` INT UNSIGNED NOT NULL,
   PRIMARY KEY (`staffID`),
-  UNIQUE INDEX `staffCardID_UNIQUE` (`staffID` ASC) VISIBLE,
+  UNIQUE INDEX `staffCardID_UNIQUE` (`libraryCardNo` ASC) VISIBLE,
   INDEX `staffAddressID_idx` (`address` ASC) VISIBLE,
   CONSTRAINT `staffAddressID`
     FOREIGN KEY (`address`)
@@ -296,7 +294,7 @@ CREATE TABLE IF NOT EXISTS `Staff Cards` (
     ON DELETE CASCADE
     ON UPDATE CASCADE,
   CONSTRAINT `staffCard`
-    FOREIGN KEY (`staffID`)
+    FOREIGN KEY (`libraryCardNo`)
     REFERENCES `Patrons` (`libraryCardNumber`)
     ON DELETE CASCADE
     ON UPDATE CASCADE)
@@ -309,7 +307,7 @@ ENGINE = InnoDB;
 DROP TABLE IF EXISTS `Items` ;
 
 CREATE TABLE IF NOT EXISTS `Items` (
-  `item_barcode_number` INT UNSIGNED NOT NULL,
+  `item_barcode_number` INT UNSIGNED NOT NULL AUTO_INCREMENT,
   `call_number` VARCHAR(32) NOT NULL,
   `title` VARCHAR(32) NOT NULL,
   `owningBranch` INT UNSIGNED NULL,
@@ -330,7 +328,8 @@ ENGINE = InnoDB;
 DROP TABLE IF EXISTS `Computers` ;
 
 CREATE TABLE IF NOT EXISTS `Computers` (
-  `computerID` INT UNSIGNED NOT NULL,
+  `computerID` INT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `itemRecNo` INT UNSIGNED NOT NULL,
   `computer_number` INT UNSIGNED NOT NULL,
   `is_express` TINYINT NOT NULL,
   `is_laptop` TINYINT NOT NULL,
@@ -339,7 +338,7 @@ CREATE TABLE IF NOT EXISTS `Computers` (
   PRIMARY KEY (`computerID`),
   UNIQUE INDEX `computerID_UNIQUE` (`computerID` ASC) VISIBLE,
   CONSTRAINT `copmuterBarcodeNumber`
-    FOREIGN KEY (`computerID`)
+    FOREIGN KEY (`itemRecNo`)
     REFERENCES `Items` (`item_barcode_number`)
     ON DELETE CASCADE
     ON UPDATE CASCADE)
@@ -352,7 +351,8 @@ ENGINE = InnoDB;
 DROP TABLE IF EXISTS `AV` ;
 
 CREATE TABLE IF NOT EXISTS `AV` (
-  `avID` INT UNSIGNED NOT NULL,
+  `avID` INT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `itemRecNo` INT UNSIGNED NOT NULL,
   `content_length` TIME NOT NULL,
   `age_rating` VARCHAR(8) NOT NULL,
   `item_count` INT UNSIGNED NOT NULL,
@@ -360,7 +360,7 @@ CREATE TABLE IF NOT EXISTS `AV` (
   PRIMARY KEY (`avID`),
   UNIQUE INDEX `avID_UNIQUE` (`avID` ASC) VISIBLE,
   CONSTRAINT `avBarcodeNumber`
-    FOREIGN KEY (`avID`)
+    FOREIGN KEY (`itemRecNo`)
     REFERENCES `Items` (`item_barcode_number`)
     ON DELETE CASCADE
     ON UPDATE CASCADE)
@@ -373,7 +373,8 @@ ENGINE = InnoDB;
 DROP TABLE IF EXISTS `Fiction` ;
 
 CREATE TABLE IF NOT EXISTS `Fiction` (
-  `fictionID` INT UNSIGNED NOT NULL,
+  `fictionID` INT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `itemRecNo` INT UNSIGNED NOT NULL,
   `genre` VARCHAR(16) NOT NULL,
   `author_first_name` VARCHAR(32) NOT NULL,
   `author_last_name` VARCHAR(32) NOT NULL,
@@ -382,7 +383,7 @@ CREATE TABLE IF NOT EXISTS `Fiction` (
   PRIMARY KEY (`fictionID`),
   UNIQUE INDEX `fictionID_UNIQUE` (`fictionID` ASC) VISIBLE,
   CONSTRAINT `fictionBarcodeNumber`
-    FOREIGN KEY (`fictionID`)
+    FOREIGN KEY (`itemRecNo`)
     REFERENCES `Items` (`item_barcode_number`)
     ON DELETE CASCADE
     ON UPDATE CASCADE)
@@ -395,8 +396,9 @@ ENGINE = InnoDB;
 DROP TABLE IF EXISTS `NonFiction` ;
 
 CREATE TABLE IF NOT EXISTS `NonFiction` (
-  `nonFictionID` INT UNSIGNED NOT NULL,
-  `deweydecimal` DECIMAL(32) UNSIGNED NOT NULL,
+  `nonFictionID` INT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `itemRecNo` INT UNSIGNED NOT NULL,
+  `deweydecimal` DECIMAL(27, 24) NOT NULL,
   `library_of_congress_classification` VARCHAR(32) NOT NULL,
   `topic` VARCHAR(16) NOT NULL,
   `author_first_name` VARCHAR(32) NOT NULL,
@@ -405,7 +407,7 @@ CREATE TABLE IF NOT EXISTS `NonFiction` (
   PRIMARY KEY (`nonFictionID`),
   UNIQUE INDEX `nonFictionID_UNIQUE` (`nonFictionID` ASC) VISIBLE,
   CONSTRAINT `nonFictionBarcodeNumber`
-    FOREIGN KEY (`nonFictionID`)
+    FOREIGN KEY (`itemRecNo`)
     REFERENCES `Items` (`item_barcode_number`)
     ON DELETE CASCADE
     ON UPDATE CASCADE)
@@ -418,15 +420,16 @@ ENGINE = InnoDB;
 DROP TABLE IF EXISTS `Archival` ;
 
 CREATE TABLE IF NOT EXISTS `Archival` (
-  `archivalID` INT UNSIGNED NOT NULL,
-  `deweyDecimal` DECIMAL(32) UNSIGNED NOT NULL,
+  `archivalID` INT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `itemRecNo` INT UNSIGNED NOT NULL,
+  `deweyDecimal` DECIMAL(27, 24) NOT NULL,
   `library_of_congress_classification` VARCHAR(32) NOT NULL,
   `item_count` INT UNSIGNED NOT NULL,
   `description` VARCHAR(256) NOT NULL,
   PRIMARY KEY (`archivalID`),
   UNIQUE INDEX `archivalID_UNIQUE` (`archivalID` ASC) VISIBLE,
   CONSTRAINT `archivalBarcodeNumber`
-    FOREIGN KEY (`archivalID`)
+    FOREIGN KEY (`itemRecNo`)
     REFERENCES `Items` (`item_barcode_number`)
     ON DELETE CASCADE
     ON UPDATE CASCADE)
@@ -439,14 +442,15 @@ ENGINE = InnoDB;
 DROP TABLE IF EXISTS `Kit` ;
 
 CREATE TABLE IF NOT EXISTS `Kit` (
-  `kitId` INT UNSIGNED NOT NULL,
+  `kitId` INT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `itemRecNo` INT UNSIGNED NOT NULL,
   `age_rating` VARCHAR(8) NOT NULL,
   `item_count` INT UNSIGNED NOT NULL,
   `description` VARCHAR(256) NOT NULL,
   PRIMARY KEY (`kitId`),
   UNIQUE INDEX `kitId_UNIQUE` (`kitId` ASC) VISIBLE,
   CONSTRAINT `kitBarcodeNumber`
-    FOREIGN KEY (`kitId`)
+    FOREIGN KEY (`itemRecNo`)
     REFERENCES `Items` (`item_barcode_number`)
     ON DELETE CASCADE
     ON UPDATE CASCADE)
@@ -459,7 +463,8 @@ ENGINE = InnoDB;
 DROP TABLE IF EXISTS `Periodical` ;
 
 CREATE TABLE IF NOT EXISTS `Periodical` (
-  `periodicalID` INT UNSIGNED NOT NULL,
+  `periodicalID` INT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `itemRecNo` INT UNSIGNED NOT NULL,
   `publisher` VARCHAR(32) NOT NULL,
   `age_rating` VARCHAR(8) NOT NULL,
   `issue_date` DATE NOT NULL,
@@ -468,7 +473,7 @@ CREATE TABLE IF NOT EXISTS `Periodical` (
   PRIMARY KEY (`periodicalID`),
   UNIQUE INDEX `periodicalID_UNIQUE` (`periodicalID` ASC) VISIBLE,
   CONSTRAINT `periodicalBarcodeNumber`
-    FOREIGN KEY (`periodicalID`)
+    FOREIGN KEY (`itemRecNo`)
     REFERENCES `Items` (`item_barcode_number`)
     ON DELETE CASCADE
     ON UPDATE CASCADE)
@@ -481,13 +486,14 @@ ENGINE = InnoDB;
 DROP TABLE IF EXISTS `Pass` ;
 
 CREATE TABLE IF NOT EXISTS `Pass` (
-  `passID` INT UNSIGNED NOT NULL,
+  `passID` INT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `itemRecNo` INT UNSIGNED NOT NULL,
   `item_count` INT UNSIGNED NOT NULL,
   `description` VARCHAR(256) NOT NULL,
   PRIMARY KEY (`passID`),
   UNIQUE INDEX `passID_UNIQUE` (`passID` ASC) VISIBLE,
   CONSTRAINT `passBarcodeNumber`
-    FOREIGN KEY (`passID`)
+    FOREIGN KEY (`itemRecNo`)
     REFERENCES `Items` (`item_barcode_number`)
     ON DELETE CASCADE
     ON UPDATE CASCADE)
@@ -500,13 +506,14 @@ ENGINE = InnoDB;
 DROP TABLE IF EXISTS `Digital` ;
 
 CREATE TABLE IF NOT EXISTS `Digital` (
-  `digitalID` INT UNSIGNED NOT NULL,
+  `digitalID` INT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `itemRecNo` INT UNSIGNED NOT NULL,
   `content_length` VARCHAR(32) NOT NULL,
   `description` VARCHAR(256) NOT NULL,
   PRIMARY KEY (`digitalID`),
   UNIQUE INDEX `digitalID_UNIQUE` (`digitalID` ASC) VISIBLE,
   CONSTRAINT `digitalBarcodeNumber`
-    FOREIGN KEY (`digitalID`)
+    FOREIGN KEY (`itemRecNo`)
     REFERENCES `Items` (`item_barcode_number`)
     ON DELETE CASCADE
     ON UPDATE CASCADE)
@@ -519,7 +526,7 @@ ENGINE = InnoDB;
 DROP TABLE IF EXISTS `Transactions` ;
 
 CREATE TABLE IF NOT EXISTS `Transactions` (
-  `transactionID` INT UNSIGNED NOT NULL,
+  `transactionID` INT UNSIGNED NOT NULL AUTO_INCREMENT,
   `patronCardNumber` INT UNSIGNED NOT NULL,
   `transactionBranch` INT UNSIGNED NULL,
   `transactionItem` INT UNSIGNED NOT NULL,
@@ -552,13 +559,15 @@ ENGINE = InnoDB;
 DROP TABLE IF EXISTS `Payments` ;
 
 CREATE TABLE IF NOT EXISTS `Payments` (
-  `paymentID` INT UNSIGNED NOT NULL,
-  `total_paid` DECIMAL(4) UNSIGNED NOT NULL,
+  `paymentID` INT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `transRecNo` INT UNSIGNED NOT NULL,
+  `total_paid` DECIMAL(6, 2) NOT NULL,
+  `total_owed` DECIMAL(6, 2) NOT NULL,
   `date_of_payment` DATE NOT NULL,
   PRIMARY KEY (`paymentID`),
   UNIQUE INDEX `paymentID_UNIQUE` (`paymentID` ASC) VISIBLE,
   CONSTRAINT `paymentTransactionID`
-    FOREIGN KEY (`paymentID`)
+    FOREIGN KEY (`transRecNo`)
     REFERENCES `Transactions` (`transactionID`)
     ON DELETE CASCADE
     ON UPDATE CASCADE)
@@ -571,7 +580,8 @@ ENGINE = InnoDB;
 DROP TABLE IF EXISTS `Holds` ;
 
 CREATE TABLE IF NOT EXISTS `Holds` (
-  `holdID` INT UNSIGNED NOT NULL,
+  `holdID` INT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `transRecNo` INT UNSIGNED NOT NULL,
   `owningBranch` INT UNSIGNED NOT NULL,
   `holdingBranch` INT UNSIGNED NOT NULL,
   PRIMARY KEY (`holdID`),
@@ -579,7 +589,7 @@ CREATE TABLE IF NOT EXISTS `Holds` (
   INDEX `owningBranchID_idx` (`owningBranch` ASC) VISIBLE,
   INDEX `holdingBranchID_idx` (`holdingBranch` ASC) VISIBLE,
   CONSTRAINT `holdTransactionID`
-    FOREIGN KEY (`holdID`)
+    FOREIGN KEY (`transRecNo`)
     REFERENCES `Transactions` (`transactionID`)
     ON DELETE CASCADE
     ON UPDATE CASCADE)
@@ -592,14 +602,15 @@ ENGINE = InnoDB;
 DROP TABLE IF EXISTS `Checkouts` ;
 
 CREATE TABLE IF NOT EXISTS `Checkouts` (
-  `checkoutID` INT UNSIGNED NOT NULL,
+  `checkoutID` INT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `transRecNo` INT UNSIGNED NOT NULL,
   `checkoutBranch` INT UNSIGNED NOT NULL,
   `checkout_date` DATE NOT NULL,
   PRIMARY KEY (`checkoutID`),
   UNIQUE INDEX `checkoutID_UNIQUE` (`checkoutID` ASC) VISIBLE,
   INDEX `checkoutBranchID_idx` (`checkoutBranch` ASC) VISIBLE,
   CONSTRAINT `checkoutTransactionID`
-    FOREIGN KEY (`checkoutID`)
+    FOREIGN KEY (`transRecNo`)
     REFERENCES `Transactions` (`transactionID`)
     ON DELETE CASCADE
     ON UPDATE CASCADE)
@@ -612,14 +623,15 @@ ENGINE = InnoDB;
 DROP TABLE IF EXISTS `Returns` ;
 
 CREATE TABLE IF NOT EXISTS `Returns` (
-  `returnID` INT UNSIGNED NOT NULL,
+  `returnID` INT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `transRecNo` INT UNSIGNED NOT NULL,
   `returnBranch` INT UNSIGNED NOT NULL,
   `return_date` DATE NOT NULL,
   PRIMARY KEY (`returnID`),
   UNIQUE INDEX `returnID_UNIQUE` (`returnID` ASC) VISIBLE,
   INDEX `returnBranchID_idx` (`returnBranch` ASC) VISIBLE,
   CONSTRAINT `returnTransactionID`
-    FOREIGN KEY (`returnID`)
+    FOREIGN KEY (`transRecNo`)
     REFERENCES `Transactions` (`transactionID`)
     ON DELETE CASCADE
     ON UPDATE CASCADE)
