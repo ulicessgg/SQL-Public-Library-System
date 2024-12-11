@@ -11,6 +11,12 @@ SET @OLD_SQL_MODE=@@SQL_MODE, SQL_MODE='ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,N
 -- Schema librarydb
 -- -----------------------------------------------------
 
+DROP SCHEMA IF EXISTS `librarydb` ;
+
+CREATE SCHEMA IF NOT EXISTS `librarydb` ;
+
+USE `librarydb` ;
+
 -- -----------------------------------------------------
 -- Table `addresses`
 -- -----------------------------------------------------

@@ -2,7 +2,7 @@
 -- Thurs Nov 7 2024
 -- Last Edited Dec 10 2024
 
-USE libraryDB;
+USE `librarydb` ;
 /*
      Business Requirements #1
      ----------------------------------------------------
@@ -18,7 +18,7 @@ USE libraryDB;
      Challenge:   The major issue that somewhat impededes this function from being done normall is the amount of data that
 				  needs to be accessed especially in the context of a libary as not only does it need to look at patrons,
                   transactions, payments, and items; but it also needs to access only select information before updating a 
-                  users account before blocking them from future transactions.
+                  patrons account before blocking them from future transactions.
      
      Implementation Plan:
         1. Join the transactions and patrons tables on the presence of delinquent patrons
@@ -49,7 +49,6 @@ BEGIN
 	       Items.title AS "Transaction Item",
 	       Items.item_barcode_number AS "Item Number",
 	       Payments.total_owed AS "Total Owed"
-           
 	FROM Patrons
 	JOIN Transactions ON Patrons.libraryCardNumber = Transactions.patronCardNumber
 	JOIN Items ON Items.item_barcode_number = Transactions.transactionItem
@@ -66,70 +65,210 @@ DELIMITER ;
      Description: More often than not many people are scared to come into the library as it can be
 				  something unfamilar to them or something they have had bad experience with in the
 				  past so in order to help differentiate the account processes this script will be
-				  ran in order to create a users account and immediately create an e-card for them for
+				  ran in order to create a patrons account and immediately create an e-card for them for
 				  use of digital items and computers but still give them the chance to come in the future
 				  to any library branch in their system and make a full service account.
      
-     Challenge:   
+     Challenge:   Due to the manner in which i set up my tables the main challenge with this process
+				  comes from having to manage data in two tables while not deleting them in the incorrect
+                  order. If a patron is deleted prior to their account types it can lead to issue upon
+                  insertion of a new account.  Lastly the other challenge present in the database comes from
+                  inserting a patrons account type after they have a new parent account as a trigger can work
+                  but would require more data being input by patrons in a repeated manner
      
      Implementation Plan:
-        1. 
+        1. Verify if patron email is present
+        2. If present delete previous account as it is inaccesible to the patron
+        3. If an account is not longer present create a new account for the patron
+        4. Lastly in order to give them access to digtial media and in branch services
+		   issue the patron an e card
+		
 */
 
-DROP PROCEDURE IF EXISTS CreateNewUser ;
+DROP PROCEDURE IF EXISTS CreateNewpatron ;
 
 DELIMITER $$
-CREATE PROCEDURE CreateNewUser(IN userEmail VARCHAR(64), IN userFirstName VARCHAR(32), IN userMiddleName VARCHAR(32),
-							   IN userLastName VARCHAR(32), IN userIsDelinquent TINYINT, IN userDateOfBirth DATE)
+CREATE PROCEDURE CreateNewpatron(IN patronEmail VARCHAR(64), IN patronFirstName VARCHAR(32), IN patronMiddleName VARCHAR(32),
+							     IN patronLastName VARCHAR(32), IN patronDateOfBirth DATE)
 BEGIN
     DECLARE existingCardNumber INT;
     SELECT Patrons.libraryCardNumber INTO existingCardNumber
     FROM Patrons
-    WHERE Patrons.email = userEmail;
+    WHERE Patrons.email = patronEmail;
     
     IF existingCardNumber IS NOT NULL THEN
         DELETE FROM `E-Cards`
-        WHERE E-Cards.libraryCardNo = existingCardNumber;
+        WHERE `E-Cards`.libraryCardNo = existingCardNumber;
         DELETE FROM Patrons
         WHERE Patrons.libraryCardNumber = existingCardNumber;
     END IF;
 
     INSERT INTO Patrons (email, first_name, middle_name, last_name, is_delinquent) VALUES
-    (userEmail, userFirstName, userMiddleName, userLastName, userIsDelinquent);
+    (patronEmail, patronFirstName, patronMiddleName, patronLastName, 0);
 
     SET existingCardNumber = LAST_INSERT_ID();
     INSERT INTO `E-Cards` (libraryCardNo, date_of_birth) VALUES 
-    (existingCardNumber, userDateOfBirth);
+    (existingCardNumber, patronDateOfBirth);
+END $$
+DELIMITER ;
+/*
+     Business Requirements #3
+     ----------------------------------------------------
+     Purpose: Address Verfication, Creation, and Specification
+     
+     Description: In order for most libraries to issue any full service card there needs to be an address
+				  verification for the patron to get their card. This script when run will check if the patrons
+                  input fields are already present in the database and if so it will have skipped any insertions.
+                  If the fields do not match then a new address will then be created in order to add it to the database
+                  and if the patron entered any infromation that is used for an apartment or a po box it will create
+                  an entry for either for the two types but not both. This will then allow a patron to then come into
+                  the library where reference staff can then issue them a full service card.
+     
+     Challenge:   Although verifying the precense of an address is relatively simple in my database the main
+				  issue that can come of this the fact that addresses and their types share a common attribute
+                  which is the addressId. It is important to manage the data seperately without joins as if they were
+                  to be joined it can lead to issues where the correct addressID is found but other attributes show
+                  that the record being accessed is not the intended one. This is also done to make sure that the insertion
+                  of new addresses is straightforward and allows for the use of conditional statements to specify whether a 
+                  patron is using an apartment or a po box and if neither are used a standard address is the only
+                  record being inserted
+     
+     Implementation Plan:
+        1. Save existing data upon verifying if patron input data is present
+        2. Seperate address from subtypes IF any are present in the database
+        3. Verify address is not present and insert if true
+		4. After inserting address verify presence of an apartment and insert if needed
+        5. If an apartment was not inserted but a po box is not present insert into the database
+*/
+
+DROP PROCEDURE IF EXISTS AddressVerifcation ;
+
+DELIMITER $$
+CREATE PROCEDURE AddressVerifcation(IN patronStreetNumber INT, IN patronStreetName VARCHAR(16), IN patronCity VARCHAR(16),
+									IN patronState VARCHAR(16), IN patronZipcode INT, IN patronBuilding INT,
+                                    IN patronAptNumber INT, IN patronPOBox INT, IN patronService VARCHAR(16))
+BEGIN
+    DECLARE existingAddress INT;
+    DECLARE existingApartment INT;
+    DECLARE existingPOBox INT;
+    DECLARE newAddress INT;
+    DECLARE newApartment INT;
+    
+    SELECT Addresses.addressID INTO existingAddress
+    FROM Addresses
+    WHERE Addresses.street_number = patronStreetNumber AND Addresses.street_name = patronStreetName
+	AND Addresses.zipcode = patronZipcode AND Addresses.state = patronState;
+    
+	SELECT Apartments.aptAddressID INTO existingApartment
+    FROM Apartments
+    WHERE Apartments.building_number = patronBuilding AND Apartments.apartment_number = patronAptNumber;
+    
+	SELECT `P.O. Boxes`.poAddressID INTO existingAddress
+    FROM `P.O. Boxes`
+    WHERE `P.O. Boxes`.po_box_number = patronPOBox AND `P.O. Boxes`.service_name = patronService;
+    
+    IF existingAddress IS NULL THEN
+        INSERT INTO Addresses (street_number, street_name, city, state, zipcode) VALUES
+		(patronStreetNumber, patronStreetName, patronCity, patronState, patronZipcode);
+        
+        SET newAddress = LAST_INSERT_ID();
+        
+        IF existingApartment IS NULL AND existingPOBox IS NULL THEN
+			INSERT INTO Apartments (aptAddressID, building_number, apartment_number) VALUES 
+			(newAddress, patronBuilding, patronAptNumber);
+            
+            SET newApartment = LAST_INSERT_ID();
+		END IF;
+    
+		IF existingPOBox IS NULL AND newApartment IS NULL THEN
+			INSERT INTO `P.O. Boxes` (poAddressID, po_box_number, service_name) VALUES 
+			(newAddress, patronPOBox, patronService);
+		END IF;
+    END IF;
+
 END $$
 DELIMITER ;
 
 /*
-     Business Requirements #3
-     ----------------------------------------------------
-     Purpose: 
-     
-     Description: 
-     
-     Challenge:   
-     
-     Implementation Plan:
-        1. 
-*/
-
-
-
-/*
      Business Requirements #4
      ----------------------------------------------------
-     Purpose: 
+     Purpose: Upgrade E-Card to Full Service Account
      
-     Description:  
+     Description:  Due to the various types of accounts patrons can have general patrons are limited to e-cards, full service, and children types.
+				   This poses the issue that if a patron has an ecard and cannot come into their library branch to upgrade that they would need
+                   some form of upgrade digitally. This script will be run to check for the presence of a library account and if present they will
+                   automatically be issues an upgrade to their account while also deleting their e-card status. This will also verify their address
+                   by using the AddressVerifcation procedure which will also create their address if not present. This will make it possible to expand
+                   services offered by the library to patrons who either cannot come in or if they are busy with something and would still like to
+                   finalize their account set up without the hassle of being in the library.
      
-     Challenge:   
+     Challenge:    While this procedure is relatively straight forward the main issue comes from relying on the AddressVerification procedure as if
+				   it does not create a patrons address because it is present then I will need to check for the presence of the address while making sure
+                   that I do not do so prior to running the procedure.
      
      Implementation Plan:
-        1. 
+        1. Gather patrons input field data and store card number if verified
+        2. If e-card is present save date of birth and linked parent account
+        3. Call AddressVerification procedure and after terminating check for the presence of a patrons address
+        4. Insert patron into full service accounts if not present
+        5. If present check if patron is delinqent, delete if not
+        5. Upon insertion trigger deletion inside of the e-card table
+        6. Output patrons information
 */
+
+DROP PROCEDURE IF EXISTS UpgradePatronAccount ;
+
+DELIMITER $$
+CREATE PROCEDURE UpgradePatronAccount(IN patronCardNumber INT, IN patronPhoneNumber INT, IN patronStreetNumber INT, IN patronStreetName VARCHAR(16), 
+								    IN patronCity VARCHAR(16), IN patronState VARCHAR(16), IN patronZipcode INT)
+BEGIN
+	DECLARE existingPatron INT;
+    DECLARE dateOfBirth DATE;
+    DECLARE patronAddress INT;
+    
+    SELECT `E-Cards`.libraryCardNo INTO existingPatron
+    FROM `E-Cards`
+    WHERE `E-Cards`.libraryCardNo = patronCardNumber;
+    
+    SELECT `E-Cards`.date_of_birth INTO dateOfBirth
+    FROM `E-Cards`
+    WHERE `E-Cards`.libraryCardNo = patronCardNumber;
+    
+    IF existingPatron IS NOT NULL THEN
+		Call AddressVerifcation(patronStreetNumber, patronStreetName, patronCity, patronState, patronZipcode, 0, 0, 0, '');
+        
+        SELECT Addresses.addressID INTO patronAddress
+		FROM Addresses
+		WHERE Addresses.street_number = patronStreetNumber AND Addresses.street_name = patronStreetName
+		AND Addresses.zipcode = patronZipcode AND Addresses.state = patronState;
+        
+        INSERT INTO `Full-Service Cards` (libraryCardNo, date_of_birth, phone_number, address) VALUES
+        (existingPatron, dateOfBirth, patronPhoneNumber, patronAddress);
+	END IF;
+		
+    IF existingPatron IS NULL THEN
+		SELECT `Full-Service Cards`.libraryCardNo INTO existingPatron
+		FROM `Full-Service Cards`
+		WHERE `Full-Service Cards`.libraryCardNo = patronCardNumber;
+        
+        DELETE FROM `Full-Service Cards`
+        WHERE libraryCardNo = existingPatron AND is_delinquent = 0;
+    END IF;
+END $$
+DELIMITER ;
+
+DROP TRIGGER IF EXISTS UpgradingECard ;
+
+DELIMITER $$
+CREATE TRIGGER UpgradingECard AFTER INSERT ON `Full-Service Cards` FOR EACH ROW
+BEGIN
+	DECLARE parentAccount INT;
+    
+    Select NEW.libraryCardNo INTO parentAccount;
+    DELETE FROM `E-Cards`
+    WHERE libraryCardNo = parentAccount;
+END $$
+DELIMITER ;
 
 /*
      Business Requirements #5

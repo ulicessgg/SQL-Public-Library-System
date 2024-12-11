@@ -2,7 +2,7 @@
 -- Thurs Nov 7 2024
 -- Last edited Dec 6 2024
 
-USE libraryDB;
+USE `librarydb`;
 
 -- -----------------------------------------------------
 -- Insertion of addresses in order to enable creation of
