@@ -11,7 +11,7 @@ Please fill in the information below by the second Monday of the semester at 9:0
 
 
 | Student Full Name       |Database Topic                                                             |
-|:---------------------:|:---------------------------:|:---------------------------:|:-------------------------------------------------------------------------:|
+|:---------------------:|:-------------------------------------------------------------------------:|
 |            Ulices Gonzalez          |                                  Public Library Catalog System                                   |
 
 Please choose a topic from this **[list of topics](milestones/res/TOPICS.md)** for the database system
